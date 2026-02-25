@@ -1,0 +1,96 @@
+# =============================================================================
+# ZhiZhuo POS - Docker Compose (Production)
+# =============================================================================
+# Usage:
+#   docker compose up -d
+#   docker compose logs -f api
+#   docker compose down
+#
+# Prerequisites:
+#   Create .env file in this directory with at minimum:
+#     MYSQL_ROOT_PASSWORD=<your-secure-password>
+#     JWT_SECRET=<your-jwt-secret>
+# =============================================================================
+
+version: "3.8"
+
+services:
+  # ---------- MySQL 8.0 ----------
+  mysql:
+    image: mysql:8.0
+    container_name: zhizhuo-mysql
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-zhizhuo_root_2024}
+      MYSQL_DATABASE: zhizhuo_pos
+      MYSQL_CHARSET: utf8mb4
+      MYSQL_COLLATION: utf8mb4_unicode_ci
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - zhizhuo-network
+    command:
+      - --default-authentication-plugin=caching_sha2_password
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --max-connections=200
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-zhizhuo_root_2024}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ---------- Redis 7 ----------
+  redis:
+    image: redis:7-alpine
+    container_name: zhizhuo-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - zhizhuo-network
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ---------- API Server (Node.js) ----------
+  api:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: zhizhuo-api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: mysql://root:${MYSQL_ROOT_PASSWORD:-zhizhuo_root_2024}@mysql:3306/zhizhuo_pos
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-change_me_in_production}
+    networks:
+      - zhizhuo-network
+
+networks:
+  zhizhuo-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
+    driver: local
+  redis-data:
+    driver: local

@@ -34,6 +34,8 @@ import memberRoutes from './modules/member/member.routes';
 import scheduleRoutes from './modules/schedule/schedule.routes';
 import commissionRoutes from './modules/commission/commission.routes';
 import reportRoutes from './modules/report/report.routes';
+import exportRoutes from './modules/report/export.routes';
+import paymentRoutes from './modules/payment/payment.routes';
 
 // 加载环境变量
 dotenv.config();
@@ -83,6 +85,9 @@ app.use('/api/v1/schedules', scheduleRoutes);
 app.use('/api/v1/commissions', commissionRoutes);
 
 app.use('/api/v1/reports', reportRoutes);
+app.use('/api/v1/reports', exportRoutes);
+
+app.use('/api/v1/payment', paymentRoutes);
 
 // ---- 启动服务 ----
 async function bootstrap() {

@@ -34,3 +34,10 @@ miniapp/.hbuilderx/
 
 # Certificates
 server/certs/
+
+# Test / Coverage
+coverage/
+.nyc_output/
+
+# Docker
+docker-compose.override.yml
