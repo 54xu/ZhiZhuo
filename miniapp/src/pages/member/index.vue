@@ -1,160 +1,91 @@
 <script setup lang="ts">
 /**
- * 会员管理首页
- * 会员搜索、快捷操作（新增会员/充值）、最近会员列表
+ * 会员 - 搜索/管理
  */
+import { onShow } from '@dcloudio/uni-app'
 import { ref } from 'vue'
+import { memberApi } from '@/api/member'
 
-const searchKeyword = ref('')
+const keyword = ref('')
+const members = ref<any[]>([])
+const loading = ref(false)
 
-function onSearch() {
-  // TODO: 搜索会员
+onShow(() => { loadRecent() })
+
+async function loadRecent() {
+  loading.value = true
+  try {
+    const { data } = await memberApi.recent(20)
+    members.value = data
+  } catch {} finally { loading.value = false }
 }
 
-function navigateToAdd() {
-  uni.navigateTo({ url: '/sub-packages/member/add' })
+async function onSearch() {
+  if (!keyword.value.trim()) { loadRecent(); return }
+  loading.value = true
+  try {
+    const { data } = await memberApi.search(keyword.value.trim())
+    members.value = data.list
+  } catch {} finally { loading.value = false }
 }
 
-function navigateToRecharge() {
-  uni.navigateTo({ url: '/sub-packages/member/recharge' })
-}
+function goAdd() { uni.navigateTo({ url: '/sub-packages/member/add' }) }
+function goRecharge(id: number) { uni.navigateTo({ url: `/sub-packages/member/recharge?memberId=${id}` }) }
+function goDetail(id: number) { uni.navigateTo({ url: `/sub-packages/member/detail?memberId=${id}` }) }
 </script>
 
 <template>
   <view class="member-page">
-    <!-- 搜索栏 -->
     <view class="search-bar">
-      <input
-        v-model="searchKeyword"
-        class="search-input"
-        type="text"
-        placeholder="搜索会员姓名/手机号"
-        confirm-type="search"
-        @confirm="onSearch"
-      />
+      <input v-model="keyword" class="search-input" placeholder="手机号/姓名/卡号搜索" confirm-type="search" @confirm="onSearch" />
+      <text class="search-btn" @tap="onSearch">搜索</text>
     </view>
 
-    <!-- 快捷操作 -->
     <view class="quick-actions">
-      <view class="action-btn primary" @tap="navigateToAdd">
+      <view class="action-btn" @tap="goAdd">
         <text class="action-icon">+</text>
-        <text class="action-label">新增会员</text>
-      </view>
-      <view class="action-btn secondary" @tap="navigateToRecharge">
-        <text class="action-icon">¥</text>
-        <text class="action-label">充值</text>
+        <text class="action-text">新增会员</text>
       </view>
     </view>
 
-    <!-- 最近会员列表 -->
-    <view class="section">
-      <view class="section-header">
-        <text class="section-title">最近会员</text>
-      </view>
-      <view class="member-list">
-        <view class="empty-state">
-          <text class="empty-text">暂无会员数据</text>
-          <text class="empty-hint">点击上方"新增会员"添加第一位会员</text>
+    <view v-if="members.length > 0" class="member-list">
+      <view v-for="m in members" :key="m.id" class="member-card" @tap="goDetail(m.id)">
+        <view class="member-info">
+          <text class="member-name">{{ m.name || '未命名' }}</text>
+          <text class="member-phone">{{ m.phone }}</text>
+        </view>
+        <view class="member-balance">
+          <text class="balance-value">¥{{ m.balance }}</text>
+          <text class="balance-label">余额</text>
+        </view>
+        <view class="member-action" @tap.stop="goRecharge(m.id)">
+          <text class="recharge-btn">充值</text>
         </view>
       </view>
+    </view>
+    <view v-else class="empty">
+      <text>{{ loading ? '加载中...' : '暂无会员数据' }}</text>
     </view>
   </view>
 </template>
 
 <style scoped>
-.member-page {
-  min-height: 100vh;
-  background-color: #f5f5f5;
-}
-
-.search-bar {
-  padding: 24rpx 32rpx;
-  background-color: #fff;
-}
-
-.search-input {
-  width: 100%;
-  height: 72rpx;
-  background-color: #f5f5f5;
-  border-radius: 36rpx;
-  padding: 0 32rpx;
-  font-size: 28rpx;
-  box-sizing: border-box;
-}
-
-.quick-actions {
-  display: flex;
-  padding: 24rpx 32rpx;
-  gap: 24rpx;
-  background-color: #fff;
-  margin-top: 2rpx;
-}
-
-.action-btn {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12rpx;
-  padding: 24rpx 0;
-  border-radius: 16rpx;
-}
-
-.action-btn.primary {
-  background-color: #1a73e8;
-  color: #fff;
-}
-
-.action-btn.secondary {
-  background-color: #e8f0fe;
-  color: #1a73e8;
-}
-
-.action-icon {
-  font-size: 36rpx;
-  font-weight: 600;
-}
-
-.action-label {
-  font-size: 28rpx;
-  font-weight: 500;
-}
-
-.section {
-  margin-top: 24rpx;
-  background-color: #fff;
-}
-
-.section-header {
-  padding: 24rpx 32rpx;
-  border-bottom: 1rpx solid #eee;
-}
-
-.section-title {
-  font-size: 30rpx;
-  font-weight: 600;
-  color: #333;
-}
-
-.member-list {
-  padding: 32rpx;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 80rpx 0;
-}
-
-.empty-text {
-  font-size: 30rpx;
-  color: #999;
-}
-
-.empty-hint {
-  font-size: 24rpx;
-  color: #ccc;
-  margin-top: 12rpx;
-}
+.member-page { padding: 20rpx; background: #f5f6fa; min-height: 100vh; }
+.search-bar { display: flex; gap: 16rpx; margin-bottom: 20rpx; }
+.search-input { flex: 1; height: 72rpx; background: #fff; border-radius: 36rpx; padding: 0 28rpx; font-size: 28rpx; }
+.search-btn { height: 72rpx; line-height: 72rpx; padding: 0 28rpx; background: #4a90d9; color: #fff; border-radius: 36rpx; font-size: 28rpx; }
+.quick-actions { display: flex; gap: 16rpx; margin-bottom: 20rpx; }
+.action-btn { display: flex; align-items: center; gap: 8rpx; padding: 16rpx 28rpx; background: #fff; border-radius: 12rpx; }
+.action-icon { font-size: 36rpx; color: #4a90d9; font-weight: bold; }
+.action-text { font-size: 28rpx; color: #333; }
+.member-list { display: flex; flex-direction: column; gap: 16rpx; }
+.member-card { display: flex; align-items: center; background: #fff; border-radius: 12rpx; padding: 24rpx; }
+.member-info { flex: 1; }
+.member-name { font-size: 30rpx; font-weight: bold; color: #333; display: block; }
+.member-phone { font-size: 24rpx; color: #999; margin-top: 4rpx; }
+.member-balance { text-align: center; margin-right: 24rpx; }
+.balance-value { font-size: 30rpx; font-weight: bold; color: #ff9500; display: block; }
+.balance-label { font-size: 22rpx; color: #999; }
+.recharge-btn { padding: 8rpx 24rpx; background: #4a90d9; color: #fff; border-radius: 20rpx; font-size: 24rpx; }
+.empty { padding: 100rpx; text-align: center; color: #999; font-size: 28rpx; }
 </style>

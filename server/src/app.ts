@@ -29,6 +29,11 @@ import serviceRoutes from './modules/admin/service.routes';
 import employeeRoutes from './modules/admin/employee.routes';
 import rechargePlanRoutes from './modules/admin/recharge-plan.routes';
 import commissionRuleRoutes from './modules/admin/commission-rule.routes';
+import orderRoutes from './modules/cashier/cashier.routes';
+import memberRoutes from './modules/member/member.routes';
+import scheduleRoutes from './modules/schedule/schedule.routes';
+import commissionRoutes from './modules/commission/commission.routes';
+import reportRoutes from './modules/report/report.routes';
 
 // 加载环境变量
 dotenv.config();
@@ -72,11 +77,12 @@ app.use('/api/v1/employees', employeeRoutes);
 app.use('/api/v1/recharge-plans', rechargePlanRoutes);
 app.use('/api/v1/commission-rules', commissionRuleRoutes);
 
-// TODO: 后续实现
-// app.use('/api/v1/orders', orderRoutes);
-// app.use('/api/v1/members', memberRoutes);
-// app.use('/api/v1/schedules', scheduleRoutes);
-// app.use('/api/v1/reports', reportRoutes);
+app.use('/api/v1/orders', orderRoutes);
+app.use('/api/v1/members', memberRoutes);
+app.use('/api/v1/schedules', scheduleRoutes);
+app.use('/api/v1/commissions', commissionRoutes);
+
+app.use('/api/v1/reports', reportRoutes);
 
 // ---- 启动服务 ----
 async function bootstrap() {

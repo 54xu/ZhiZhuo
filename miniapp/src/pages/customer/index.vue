@@ -1,124 +1,95 @@
 <script setup lang="ts">
 /**
- * 客表页面 - Today's customer list
- * 展示当日到店客户列表，支持日期筛选和状态过滤
+ * 客表 - 今日顾客列表
  */
+import { onShow } from '@dcloudio/uni-app'
 import { ref } from 'vue'
+import { useOrderStore } from '@/store/modules/order'
 
-const currentDate = ref(new Date().toISOString().slice(0, 10))
-const statusFilter = ref<'all' | 'waiting' | 'serving' | 'done'>('all')
+const orderStore = useOrderStore()
+const activeTab = ref('')
 
-const statusOptions = [
-  { label: '全部', value: 'all' },
-  { label: '等待中', value: 'waiting' },
-  { label: '服务中', value: 'serving' },
-  { label: '已完成', value: 'done' },
+const statusTabs = [
+  { label: '全部', value: '' },
+  { label: '进行中', value: 'in_progress' },
+  { label: '已完成', value: 'completed' },
+  { label: '已退款', value: 'refunded' },
 ]
+
+onShow(() => { loadData() })
+
+async function loadData() {
+  await orderStore.loadTodayCustomers(activeTab.value || undefined)
+}
+
+function switchTab(val: string) {
+  activeTab.value = val
+  loadData()
+}
+
+function onOrderTap(order: any) {
+  uni.navigateTo({ url: `/sub-packages/cashier/detail?orderId=${order.id}` })
+}
+
+function formatTime(t: string) {
+  if (!t) return ''
+  return new Date(t).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+}
+
+const statusMap: Record<string, string> = {
+  pending: '待处理', in_progress: '进行中', completed: '已完成', cancelled: '已取消', refunded: '已退款',
+}
+const statusColorMap: Record<string, string> = {
+  pending: '#ff9500', in_progress: '#4a90d9', completed: '#4cd964', cancelled: '#c7c7cc', refunded: '#ff3b30',
+}
 </script>
 
 <template>
   <view class="customer-page">
-    <!-- 日期筛选栏 -->
-    <view class="date-bar">
-      <picker mode="date" :value="currentDate" @change="(e: any) => currentDate = e.detail.value">
-        <view class="date-picker">
-          <text class="date-text">{{ currentDate }}</text>
-          <text class="icon-arrow">▼</text>
+    <scroll-view scroll-x class="tabs">
+      <text v-for="tab in statusTabs" :key="tab.value" class="tab-item"
+        :class="{ active: activeTab === tab.value }" @tap="switchTab(tab.value)">{{ tab.label }}</text>
+    </scroll-view>
+
+    <view v-if="orderStore.todayCustomers.length > 0" class="order-list">
+      <view v-for="order in orderStore.todayCustomers" :key="order.id" class="order-card" @tap="onOrderTap(order)">
+        <view class="order-header">
+          <text class="order-no">{{ order.orderNo }}</text>
+          <text class="order-status" :style="{ color: statusColorMap[order.orderStatus] }">
+            {{ statusMap[order.orderStatus] || order.orderStatus }}
+          </text>
         </view>
-      </picker>
-    </view>
-
-    <!-- 状态过滤 -->
-    <view class="status-filter">
-      <view
-        v-for="option in statusOptions"
-        :key="option.value"
-        class="filter-item"
-        :class="{ active: statusFilter === option.value }"
-        @tap="statusFilter = option.value as any"
-      >
-        <text>{{ option.label }}</text>
+        <view class="order-body">
+          <text class="order-info">{{ order.room?.name || '-' }} · {{ order.member?.name || order.customerName || '散客' }}</text>
+          <text class="order-time">{{ formatTime(order.createdAt) }}</text>
+        </view>
+        <view class="order-services">
+          <text v-for="(item, idx) in order.orderItems" :key="idx" class="service-tag">
+            {{ item.service?.name }} ({{ item.technician?.name }})
+          </text>
+        </view>
       </view>
     </view>
-
-    <!-- 客户列表 -->
-    <view class="customer-list">
-      <view class="empty-state">
-        <text class="empty-text">暂无客户数据</text>
-        <text class="empty-hint">今日到店客户将显示在这里</text>
-      </view>
+    <view v-else class="empty">
+      <text>今日暂无顾客记录</text>
     </view>
   </view>
 </template>
 
 <style scoped>
-.customer-page {
-  min-height: 100vh;
-  background-color: #f5f5f5;
-}
-
-.date-bar {
-  padding: 24rpx 32rpx;
-  background-color: #fff;
-}
-
-.date-picker {
-  display: flex;
-  align-items: center;
-  gap: 8rpx;
-}
-
-.date-text {
-  font-size: 32rpx;
-  font-weight: 600;
-  color: #333;
-}
-
-.icon-arrow {
-  font-size: 20rpx;
-  color: #999;
-}
-
-.status-filter {
-  display: flex;
-  padding: 16rpx 32rpx;
-  background-color: #fff;
-  border-top: 1rpx solid #eee;
-  gap: 16rpx;
-}
-
-.filter-item {
-  padding: 12rpx 28rpx;
-  border-radius: 32rpx;
-  background-color: #f5f5f5;
-  font-size: 26rpx;
-  color: #666;
-}
-
-.filter-item.active {
-  background-color: #e8f0fe;
-  color: #1a73e8;
-}
-
-.customer-list {
-  padding: 32rpx;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 120rpx 0;
-}
-
-.empty-text {
-  font-size: 30rpx;
-  color: #999;
-}
-
-.empty-hint {
-  font-size: 24rpx;
-  color: #ccc;
-  margin-top: 12rpx;
-}
+.customer-page { padding: 20rpx; background: #f5f6fa; min-height: 100vh; }
+.tabs { display: flex; gap: 16rpx; margin-bottom: 20rpx; white-space: nowrap; }
+.tab-item { padding: 12rpx 28rpx; border-radius: 24rpx; font-size: 26rpx; background: #fff; color: #666; display: inline-block; }
+.tab-item.active { background: #4a90d9; color: #fff; }
+.order-list { display: flex; flex-direction: column; gap: 16rpx; }
+.order-card { background: #fff; border-radius: 12rpx; padding: 24rpx; }
+.order-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12rpx; }
+.order-no { font-size: 26rpx; color: #999; }
+.order-status { font-size: 26rpx; font-weight: bold; }
+.order-body { display: flex; justify-content: space-between; margin-bottom: 12rpx; }
+.order-info { font-size: 28rpx; color: #333; font-weight: bold; }
+.order-time { font-size: 24rpx; color: #999; }
+.order-services { display: flex; flex-wrap: wrap; gap: 8rpx; }
+.service-tag { font-size: 22rpx; background: #f0f5ff; color: #4a90d9; padding: 4rpx 12rpx; border-radius: 8rpx; }
+.empty { padding: 100rpx; text-align: center; color: #999; font-size: 28rpx; }
 </style>

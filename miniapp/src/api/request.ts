@@ -12,7 +12,7 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
 
 interface RequestOptions {
   url: string
-  method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
   data?: any
   header?: Record<string, string>
   showLoading?: boolean
@@ -80,7 +80,7 @@ export function request<T = any>(options: RequestOptions): Promise<ApiResponse<T
         // Token 过期
         if (statusCode === 401) {
           clearToken()
-          uni.reLaunch({ url: '/pages/login/index' })
+          uni.reLaunch({ url: '/pages/index/index' })
           reject(new Error('登录已过期，请重新登录'))
           return
         }
