@@ -17,7 +17,7 @@ async function loadRecent() {
   try {
     const { data } = await memberApi.recent(20)
     members.value = data
-  } catch {} finally { loading.value = false }
+  } catch { uni.showToast({ title: '加载失败', icon: 'none' }) } finally { loading.value = false }
 }
 
 async function onSearch() {
@@ -26,7 +26,7 @@ async function onSearch() {
   try {
     const { data } = await memberApi.search(keyword.value.trim())
     members.value = data.list
-  } catch {} finally { loading.value = false }
+  } catch { uni.showToast({ title: '搜索失败', icon: 'none' }) } finally { loading.value = false }
 }
 
 function goAdd() { uni.navigateTo({ url: '/sub-packages/member/add' }) }

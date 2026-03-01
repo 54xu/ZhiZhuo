@@ -7,6 +7,18 @@
 import { PrismaClient, Prisma } from '@prisma/client';
 import { eventBus, Events } from '../../core/event-bus';
 
+/** 将日期字符串或"今天"转为 UTC 午夜 Date，匹配 Prisma 读取 MySQL DATE 字段的格式 */
+function toDateOnly(dateStr?: string): Date {
+  if (dateStr) {
+    return new Date(dateStr + 'T00:00:00Z');
+  }
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  return new Date(`${yyyy}-${mm}-${dd}T00:00:00Z`);
+}
+
 export class CommissionService {
   constructor(private prisma: PrismaClient) {}
 
@@ -52,8 +64,7 @@ export class CommissionService {
       commissionDate: Date;
     }> = [];
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = toDateOnly();
 
     for (const item of orderItems) {
       const serviceAmount = new Prisma.Decimal(item.subtotal);
@@ -99,10 +110,8 @@ export class CommissionService {
    * 查询提成汇总（按技师分组）
    */
   async getSummary(storeId: number, startDate: string, endDate: string) {
-    const start = new Date(startDate);
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(endDate);
-    end.setHours(23, 59, 59, 999);
+    const start = new Date(startDate + 'T00:00:00Z');
+    const end = new Date(endDate + 'T23:59:59.999Z');
 
     const records = await this.prisma.commissionRecord.findMany({
       where: {
@@ -155,10 +164,8 @@ export class CommissionService {
    * 查询某技师提成明细
    */
   async getTechnicianDetail(storeId: number, technicianId: number, startDate: string, endDate: string) {
-    const start = new Date(startDate);
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(endDate);
-    end.setHours(23, 59, 59, 999);
+    const start = new Date(startDate + 'T00:00:00Z');
+    const end = new Date(endDate + 'T23:59:59.999Z');
 
     return this.prisma.commissionRecord.findMany({
       where: {

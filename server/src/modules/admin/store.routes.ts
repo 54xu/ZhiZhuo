@@ -10,7 +10,28 @@ import { prisma } from '../../app';
 
 const router = Router();
 
-// 获取当前门店信息
+// 获取当前用户所在门店信息
+router.get('/', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const store = await prisma.store.findUnique({
+      where: { id: req.user!.storeId },
+      include: {
+        _count: {
+          select: { zones: true, rooms: true, employees: true, services: true },
+        },
+      },
+    });
+    if (!store) {
+      res.status(404).json({ code: 404, message: '门店不存在' });
+      return;
+    }
+    res.json({ code: 0, data: store });
+  } catch (error: any) {
+    res.status(500).json({ code: 500, message: '获取门店信息失败' });
+  }
+});
+
+// 获取指定门店信息
 router.get('/:id', requireAuth, async (req: Request, res: Response) => {
   try {
     const storeId = Number(req.params.id);

@@ -72,7 +72,7 @@ async function loadData() {
     services.value = servicesRes.data
     technicians.value = techRes.data
     technicianOptions.value = [{ id: 0, name: '通用(所有技师)' }, ...techRes.data]
-  } catch {} finally {
+  } catch { uni.showToast({ title: '加载失败', icon: 'none' }) } finally {
     loading.value = false
   }
 }
@@ -163,7 +163,7 @@ async function saveRule() {
     }
     showModal.value = false
     await loadData()
-  } catch {}
+  } catch { uni.showToast({ title: '保存失败', icon: 'none' }) }
 }
 
 function confirmDeleteRule(rule: CommissionRule) {
@@ -178,7 +178,7 @@ function confirmDeleteRule(rule: CommissionRule) {
           await commissionRuleApi.remove(rule.id)
           uni.showToast({ title: '删除成功', icon: 'success' })
           await loadData()
-        } catch {}
+        } catch { uni.showToast({ title: '删除失败', icon: 'none' }) }
       }
     },
   })

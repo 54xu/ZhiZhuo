@@ -19,6 +19,7 @@ import dotenv from 'dotenv';
 import { featureFlagService } from './core/feature-flag.service';
 import { eventBus } from './core/event-bus';
 import { hookRegistry } from './core/hook-registry';
+import { CommissionService } from './modules/commission/commission.service';
 
 // V1 模块路由
 import authRoutes from './modules/auth/auth.routes';
@@ -104,7 +105,12 @@ async function bootstrap() {
     console.log('[EventBus] Ready');
     console.log('[HookRegistry] Ready');
 
-    // 4. TODO: 动态加载 V2/V3 扩展模块
+    // 4. 初始化提成事件监听（结账后自动计算提成）
+    const commissionService = new CommissionService(prisma);
+    commissionService.registerEvents();
+    console.log('[Commission] Event listeners registered');
+
+    // 5. TODO: 动态加载 V2/V3 扩展模块
     // loadExtensionModules(prisma);
 
     // 5. 启动 HTTP 服务

@@ -67,7 +67,7 @@ async function loadZones() {
     if (data.length > 0 && !activeZoneId.value) {
       activeZoneId.value = data[0].id
     }
-  } catch {}
+  } catch { uni.showToast({ title: '加载失败', icon: 'none' }) }
 }
 
 async function loadRooms() {
@@ -75,7 +75,7 @@ async function loadRooms() {
   try {
     const { data } = await roomApi.list()
     rooms.value = data
-  } catch {} finally {
+  } catch { uni.showToast({ title: '加载失败', icon: 'none' }) } finally {
     loading.value = false
   }
 }
@@ -121,7 +121,7 @@ async function saveZone() {
     }
     showZoneModal.value = false
     await loadZones()
-  } catch {}
+  } catch { uni.showToast({ title: '保存失败', icon: 'none' }) }
 }
 
 function confirmDeleteZone(zone: Zone) {
@@ -138,7 +138,7 @@ function confirmDeleteZone(zone: Zone) {
           }
           await loadZones()
           await loadRooms()
-        } catch {}
+        } catch { uni.showToast({ title: '删除失败', icon: 'none' }) }
       }
     },
   })
@@ -175,7 +175,7 @@ function onRoomLongPress(room: Room) {
           await roomApi.remove(room.id)
           uni.showToast({ title: '删除成功', icon: 'success' })
           await loadRooms()
-        } catch {}
+        } catch { uni.showToast({ title: '删除失败', icon: 'none' }) }
       }
     },
   })
@@ -202,7 +202,7 @@ async function saveRoom() {
     }
     showRoomModal.value = false
     await loadRooms()
-  } catch {}
+  } catch { uni.showToast({ title: '保存失败', icon: 'none' }) }
 }
 </script>
 

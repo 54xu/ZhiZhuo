@@ -40,7 +40,7 @@ async function loadStoreDetail() {
       openTime: data.openTime || '09:00',
       closeTime: data.closeTime || '22:00',
     }
-  } catch {} finally {
+  } catch { uni.showToast({ title: '加载失败', icon: 'none' }) } finally {
     loading.value = false
   }
 }
@@ -73,7 +73,7 @@ async function saveSettings() {
       closeTime: form.value.closeTime,
     })
     uni.showToast({ title: '保存成功', icon: 'success' })
-  } catch {} finally {
+  } catch { uni.showToast({ title: '保存失败', icon: 'none' }) } finally {
     saving.value = false
   }
 }

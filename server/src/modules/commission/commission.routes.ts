@@ -13,18 +13,25 @@ const router = Router();
 
 let commissionService: CommissionService;
 function getService(): CommissionService {
-  if (!commissionService) {
-    commissionService = new CommissionService(prisma);
-    commissionService.registerEvents(); // 注册事件监听
-  }
+  if (!commissionService) commissionService = new CommissionService(prisma);
   return commissionService;
 }
+
+// 提成列表（同 summary）
+router.get('/', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const startDate = (req.query.startDate as string) || new Date().toISOString().split('T')[0];
+    const endDate = (req.query.endDate as string) || startDate;
+    const summary = await getService().getSummary(req.user!.storeId, startDate, endDate);
+    res.json({ code: 0, data: summary });
+  } catch (error: any) {
+    res.status(500).json({ code: 500, message: '获取提成数据失败' });
+  }
+});
 
 // 提成汇总
 router.get('/summary', requireAuth, async (req: Request, res: Response) => {
   try {
-    // 确保服务已初始化（含事件注册）
-    getService();
 
     const startDate = (req.query.startDate as string) || new Date().toISOString().split('T')[0];
     const endDate = (req.query.endDate as string) || startDate;

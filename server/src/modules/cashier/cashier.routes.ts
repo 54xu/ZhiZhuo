@@ -29,6 +29,12 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
       res.status(400).json({ code: 400, message: '房台和服务项目不能为空' });
       return;
     }
+    for (const item of items) {
+      if (!item.serviceId || !item.technicianId) {
+        res.status(400).json({ code: 400, message: '每个服务项目必须指定 serviceId 和 technicianId' });
+        return;
+      }
+    }
 
     const order = await getService().createOrder(req.user!.storeId, {
       roomId,
@@ -40,7 +46,8 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
     });
     res.json({ code: 0, data: order });
   } catch (error: any) {
-    res.status(400).json({ code: 400, message: error.message });
+    const msg = error.code?.startsWith?.('P') ? '开单失败，请检查输入' : (error.message || '开单失败');
+    res.status(400).json({ code: 400, message: msg });
   }
 });
 

@@ -33,7 +33,8 @@ function onOrderTap(order: any) {
 
 function formatTime(t: string) {
   if (!t) return ''
-  return new Date(t).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+  const d = new Date(t)
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
 const statusMap: Record<string, string> = {

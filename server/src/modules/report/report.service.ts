@@ -8,11 +8,16 @@ import { PrismaClient, Prisma } from '@prisma/client';
 export class ReportService {
   constructor(private prisma: PrismaClient) {}
 
-  /** 辅助：构建日期范围 where 条件 */
+  /** 辅助：构建日期范围 where 条件（用于 DateTime 字段，如 createdAt/endTime） */
   private dateRange(start: string, end: string) {
     const s = new Date(start); s.setHours(0, 0, 0, 0);
     const e = new Date(end); e.setHours(23, 59, 59, 999);
     return { gte: s, lte: e };
+  }
+
+  /** 辅助：构建日期范围 where 条件（用于 DATE 字段，如 commissionDate/scheduleDate） */
+  private dateRangeDate(start: string, end: string) {
+    return { gte: new Date(start + 'T00:00:00Z'), lte: new Date(end + 'T23:59:59.999Z') };
   }
 
   /**
@@ -152,10 +157,10 @@ export class ReportService {
    * 技师业绩报表
    */
   async getStaffPerformance(storeId: number, startDate: string, endDate: string) {
-    const range = this.dateRange(startDate, endDate);
+    const dateRange = this.dateRangeDate(startDate, endDate);
 
     const records = await this.prisma.commissionRecord.findMany({
-      where: { storeId, commissionDate: range, status: 'normal' },
+      where: { storeId, commissionDate: dateRange, status: 'normal' },
       include: {
         technician: { select: { id: true, name: true, employeeNo: true } },
       },

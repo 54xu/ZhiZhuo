@@ -46,6 +46,26 @@ async function handleLogin() {
   }
 }
 
+/** 开发模式快速登录 */
+const devRole = ref('admin')
+const devAccounts: Record<string, { no: string; phone: string; label: string }> = {
+  admin:      { no: 'E001', phone: '13800000001', label: '张店长(管理员)' },
+  cashier:    { no: 'E002', phone: '13800000002', label: '李收银(收银员)' },
+  technician: { no: 'E003', phone: '13800000003', label: '王师傅(技师)' },
+}
+async function handleDevLogin() {
+  loading.value = true
+  try {
+    const acc = devAccounts[devRole.value]
+    await userStore.devLogin(acc.no, acc.phone)
+    uni.switchTab({ url: '/pages/workspace/index' })
+  } catch (e: any) {
+    uni.showToast({ title: e.message || '快速登录失败', icon: 'none' })
+  } finally {
+    loading.value = false
+  }
+}
+
 /** 绑定员工 */
 async function handleBind() {
   if (!employeeNo.value || !phone.value) {
@@ -88,6 +108,21 @@ async function handleBind() {
         微信一键登录
       </button>
       <text class="login-tip">使用门店管理员分配的员工账号登录</text>
+
+      <!-- 开发模式快速登录 -->
+      <view class="dev-login">
+        <text class="dev-title">— 开发测试快速登录 —</text>
+        <view class="dev-roles">
+          <text
+            v-for="(acc, key) in devAccounts" :key="key"
+            :class="['dev-role-tag', devRole === key && 'active']"
+            @tap="devRole = key as string"
+          >{{ acc.label }}</text>
+        </view>
+        <button class="btn-dev" :loading="loading" @tap="handleDevLogin">
+          快速登录
+        </button>
+      </view>
     </view>
   </view>
 </template>
@@ -160,5 +195,45 @@ async function handleBind() {
   font-size: 30rpx;
   margin-bottom: 24rpx;
   box-sizing: border-box;
+}
+.dev-login {
+  margin-top: 60rpx;
+  padding-top: 40rpx;
+  border-top: 1px dashed #ccc;
+}
+.dev-title {
+  display: block;
+  text-align: center;
+  font-size: 24rpx;
+  color: #aaa;
+  margin-bottom: 24rpx;
+}
+.dev-roles {
+  display: flex;
+  gap: 12rpx;
+  justify-content: center;
+  margin-bottom: 24rpx;
+  flex-wrap: wrap;
+}
+.dev-role-tag {
+  padding: 10rpx 24rpx;
+  border-radius: 24rpx;
+  font-size: 24rpx;
+  background: #f0f0f0;
+  color: #666;
+}
+.dev-role-tag.active {
+  background: #4a90d9;
+  color: #fff;
+}
+.btn-dev {
+  width: 100%;
+  height: 80rpx;
+  line-height: 80rpx;
+  background: #ff9500;
+  color: #fff;
+  font-size: 28rpx;
+  border-radius: 40rpx;
+  border: none;
 }
 </style>

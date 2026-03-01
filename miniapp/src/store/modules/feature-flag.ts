@@ -6,6 +6,7 @@
  */
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { get } from '@/api/request'
 
 interface FeatureFlagData {
   enabled: boolean
@@ -26,16 +27,9 @@ export const useFeatureFlagStore = defineStore('featureFlag', () => {
     loading.value = true
 
     try {
-      const res = await uni.request({
-        url: `${import.meta.env.VITE_API_BASE_URL}/api/v1/feature-flags?storeId=${storeId}`,
-        method: 'GET',
-      })
-
-      const data = (res as any).data
-      if (data.code === 0) {
-        flags.value = data.data
-        loaded.value = true
-      }
+      const { data } = await get(`/feature-flags?storeId=${storeId}`)
+      flags.value = data
+      loaded.value = true
     } catch (error) {
       console.error('[FeatureFlagStore] Failed to load flags:', error)
     } finally {

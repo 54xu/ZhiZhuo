@@ -54,7 +54,7 @@ async function loadCategories() {
     if (data.length > 0 && !activeCategoryId.value) {
       activeCategoryId.value = data[0].id
     }
-  } catch {}
+  } catch { uni.showToast({ title: '加载失败', icon: 'none' }) }
 }
 
 async function loadServices(categoryId?: number) {
@@ -62,7 +62,7 @@ async function loadServices(categoryId?: number) {
   try {
     const { data } = await serviceApi.list(categoryId)
     services.value = data
-  } catch {} finally {
+  } catch { uni.showToast({ title: '加载失败', icon: 'none' }) } finally {
     loading.value = false
   }
 }
@@ -99,7 +99,7 @@ async function saveCategory() {
     }
     showCategoryModal.value = false
     await loadCategories()
-  } catch {}
+  } catch { uni.showToast({ title: '保存失败', icon: 'none' }) }
 }
 
 function confirmDeleteCategory(cat: Category) {
@@ -116,7 +116,7 @@ function confirmDeleteCategory(cat: Category) {
           }
           await loadCategories()
           await loadServices()
-        } catch {}
+        } catch { uni.showToast({ title: '删除失败', icon: 'none' }) }
       }
     },
   })
@@ -164,7 +164,7 @@ async function saveService() {
     }
     showServiceModal.value = false
     await loadServices()
-  } catch {}
+  } catch { uni.showToast({ title: '保存失败', icon: 'none' }) }
 }
 
 function confirmDeleteService(svc: Service) {
@@ -177,7 +177,7 @@ function confirmDeleteService(svc: Service) {
           await serviceApi.remove(svc.id)
           uni.showToast({ title: '删除成功', icon: 'success' })
           await loadServices()
-        } catch {}
+        } catch { uni.showToast({ title: '删除失败', icon: 'none' }) }
       }
     },
   })

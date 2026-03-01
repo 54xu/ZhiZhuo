@@ -64,7 +64,7 @@ async function loadPlans() {
   try {
     const { data } = await rechargePlanApi.list()
     plans.value = data
-  } catch {} finally {
+  } catch { uni.showToast({ title: '加载失败', icon: 'none' }) } finally {
     loading.value = false
   }
 }
@@ -73,7 +73,7 @@ async function loadServices() {
   try {
     const { data } = await serviceApi.list()
     services.value = data
-  } catch {}
+  } catch { uni.showToast({ title: '加载失败', icon: 'none' }) }
 }
 
 function switchPlanType(type: string) {
@@ -152,7 +152,7 @@ async function savePlan() {
     }
     showModal.value = false
     await loadPlans()
-  } catch {}
+  } catch { uni.showToast({ title: '保存失败', icon: 'none' }) }
 }
 
 function confirmDeletePlan(plan: RechargePlan) {
@@ -168,7 +168,7 @@ function confirmDeletePlan(plan: RechargePlan) {
           await rechargePlanApi.remove(plan.id)
           uni.showToast({ title: '删除成功', icon: 'success' })
           await loadPlans()
-        } catch {}
+        } catch { uni.showToast({ title: '删除失败', icon: 'none' }) }
       }
     },
   })

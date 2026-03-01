@@ -58,8 +58,12 @@ router.get('/', requireAuth, requireRole('admin'), async (req: Request, res: Res
 router.get('/technicians', requireAuth, async (req: Request, res: Response) => {
   try {
     const storeId = req.user!.storeId;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // scheduleDate 是 DATE 字段，Prisma 返回 UTC 午夜，查询也需用 UTC 午夜
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const today = new Date(`${yyyy}-${mm}-${dd}T00:00:00Z`);
 
     const technicians = await prisma.employee.findMany({
       where: {

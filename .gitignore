@@ -41,3 +41,15 @@ coverage/
 
 # Docker
 docker-compose.override.yml
+
+# Deploy artifacts & secrets
+.env.prod
+zhizhuo-deploy.tar.gz
+ssh_deploy.py
+ssh_test_*.py
+ssh_upload_*.py
+test-*.sh
+pack-and-upload.sh
+
+# Claude internal
+.claude/

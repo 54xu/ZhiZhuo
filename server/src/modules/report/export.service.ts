@@ -103,11 +103,16 @@ function formatDateTime(d: Date | null | undefined): string {
 export class ExportService {
   constructor(private prisma: PrismaClient) {}
 
-  /** 辅助：构建日期范围 where 条件 */
+  /** 辅助：构建日期范围 where 条件（用于 DateTime 字段） */
   private dateRange(start: string, end: string) {
     const s = new Date(start); s.setHours(0, 0, 0, 0);
     const e = new Date(end); e.setHours(23, 59, 59, 999);
     return { gte: s, lte: e };
+  }
+
+  /** 辅助：构建日期范围 where 条件（用于 DATE 字段，如 commissionDate） */
+  private dateRangeDate(start: string, end: string) {
+    return { gte: new Date(start + 'T00:00:00Z'), lte: new Date(end + 'T23:59:59.999Z') };
   }
 
   // ===================== 营收报表 =====================
@@ -249,7 +254,7 @@ export class ExportService {
    * Sheet: 技师业绩
    */
   async exportStaffPerformance(startDate: string, endDate: string, storeId: number): Promise<Buffer> {
-    const range = this.dateRange(startDate, endDate);
+    const range = this.dateRangeDate(startDate, endDate);
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet('技师业绩');
 

@@ -1,0 +1,108 @@
+# =============================================================================
+# ZhiZhuo POS - Docker Compose (Production)
+# =============================================================================
+# 一键部署: ./deploy.sh
+# 手动启动: docker compose -f docker-compose.prod.yml up -d
+# 查看日志: docker compose -f docker-compose.prod.yml logs -f api
+# 停止服务: docker compose -f docker-compose.prod.yml down
+# =============================================================================
+
+services:
+  # ---------- MySQL 8.0 ----------
+  mysql:
+    image: mysql:8.0
+    container_name: zhizhuo-mysql
+    restart: unless-stopped
+    # 不暴露端口到宿主机，避免与其他项目冲突
+    # 仅通过 zhizhuo-network 内部访问
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: zhizhuo_pos
+      MYSQL_CHARSET: utf8mb4
+      MYSQL_COLLATION: utf8mb4_unicode_ci
+    volumes:
+      - zhizhuo-mysql-data:/var/lib/mysql
+    networks:
+      - zhizhuo-network
+    command:
+      - --default-authentication-plugin=caching_sha2_password
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --max-connections=200
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ---------- Redis 7 ----------
+  redis:
+    image: redis:7-alpine
+    container_name: zhizhuo-redis
+    restart: unless-stopped
+    # 不暴露端口到宿主机，避免与其他项目冲突
+    volumes:
+      - zhizhuo-redis-data:/data
+    networks:
+      - zhizhuo-network
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ---------- API Server (Node.js) ----------
+  api:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: zhizhuo-api
+    restart: unless-stopped
+    # 仅暴露 API 端口，通过 Nginx 反向代理
+    ports:
+      - "${API_PORT:-3000}:3000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 3000
+      DATABASE_URL: mysql://root:${MYSQL_ROOT_PASSWORD}@mysql:3306/zhizhuo_pos
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      WX_APPID: ${WX_APPID:-}
+      WX_SECRET: ${WX_SECRET:-}
+      WX_MCH_ID: ${WX_MCH_ID:-}
+      WX_PAY_API_KEY: ${WX_PAY_API_KEY:-}
+    networks:
+      - zhizhuo-network
+
+  # ---------- Nginx 反向代理 ----------
+  nginx:
+    image: nginx:alpine
+    container_name: zhizhuo-nginx
+    restart: unless-stopped
+    ports:
+      - "${NGINX_PORT:-8800}:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/logs:/var/log/nginx
+    depends_on:
+      - api
+    networks:
+      - zhizhuo-network
+
+networks:
+  zhizhuo-network:
+    driver: bridge
+
+volumes:
+  zhizhuo-mysql-data:
+    driver: local
+  zhizhuo-redis-data:
+    driver: local

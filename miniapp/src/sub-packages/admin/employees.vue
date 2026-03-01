@@ -74,7 +74,7 @@ async function loadEmployees() {
     const params = activeRole.value ? { role: activeRole.value } : undefined
     const { data } = await employeeApi.list(params)
     employees.value = data
-  } catch {} finally {
+  } catch { uni.showToast({ title: '加载失败', icon: 'none' }) } finally {
     loading.value = false
   }
 }
@@ -132,7 +132,7 @@ async function saveEmployee() {
     }
     showModal.value = false
     await loadEmployees()
-  } catch {}
+  } catch { uni.showToast({ title: '保存失败', icon: 'none' }) }
 }
 
 function confirmDeleteEmployee(emp: Employee) {
@@ -145,7 +145,7 @@ function confirmDeleteEmployee(emp: Employee) {
           await employeeApi.remove(emp.id)
           uni.showToast({ title: '删除成功', icon: 'success' })
           await loadEmployees()
-        } catch {}
+        } catch { uni.showToast({ title: '删除失败', icon: 'none' }) }
       }
     },
   })
@@ -161,7 +161,7 @@ function confirmUnbindWx(emp: Employee) {
           await employeeApi.unbindWx(emp.id)
           uni.showToast({ title: '解绑成功', icon: 'success' })
           await loadEmployees()
-        } catch {}
+        } catch { uni.showToast({ title: '解绑失败', icon: 'none' }) }
       }
     },
   })

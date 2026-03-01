@@ -31,10 +31,10 @@ onLoad((options: any) => {
 })
 
 async function loadServices() {
-  try { const { data } = await serviceApi.list(); services.value = data } catch {}
+  try { const { data } = await serviceApi.list(); services.value = data } catch { uni.showToast({ title: '加载失败', icon: 'none' }) }
 }
 async function loadTechnicians() {
-  try { const { data } = await scheduleApi.getRotation(); technicians.value = data } catch {}
+  try { const { data } = await scheduleApi.getRotation(); technicians.value = data } catch { uni.showToast({ title: '加载失败', icon: 'none' }) }
 }
 
 async function searchMember() {
@@ -43,7 +43,7 @@ async function searchMember() {
     const { data } = await memberApi.search(memberPhone.value.trim(), 1, 1)
     currentMember.value = data.list?.[0] || null
     if (!currentMember.value) uni.showToast({ title: '未找到该会员', icon: 'none' })
-  } catch {}
+  } catch { uni.showToast({ title: '搜索失败', icon: 'none' }) }
 }
 
 function addService(svc: any) {

@@ -38,7 +38,7 @@ onShow(async () => {
 })
 
 async function loadDashboard() {
-  try { const { data } = await reportApi.dashboard(); dashboard.value = data } catch {}
+  try { const { data } = await reportApi.dashboard(); dashboard.value = data } catch { uni.showToast({ title: '加载失败', icon: 'none' }) }
 }
 
 function onRoomTap(room: any) {

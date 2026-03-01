@@ -29,6 +29,31 @@ export const useUserStore = defineStore('user', () => {
     return { needBind: false }
   }
 
+  /** 开发模式快速登录（跳过微信授权） */
+  async function devLogin(employeeNo: string, phone: string) {
+    // 每个账号用不同 mock code，生成不同 openid
+    const mockCode = `dev-${employeeNo}`
+    const { data: loginData } = await authApi.wxLogin(mockCode)
+
+    if (!loginData.needBind) {
+      // 该 openid 已绑定，直接用返回的 token
+      token.value = loginData.token
+      userInfo.value = loginData.employee
+      uni.setStorageSync('access_token', loginData.token)
+      return
+    }
+
+    // 未绑定，执行绑定
+    const { data: bindData } = await authApi.bind({
+      openid: loginData.openid,
+      employeeNo,
+      phone,
+    })
+    token.value = bindData.token
+    userInfo.value = bindData.employee
+    uni.setStorageSync('access_token', bindData.token)
+  }
+
   /** 绑定员工 */
   async function bindEmployee(openid: string, employeeNo: string, phone: string) {
     const { data } = await authApi.bind({ openid, employeeNo, phone })
@@ -63,6 +88,6 @@ export const useUserStore = defineStore('user', () => {
 
   return {
     token, userInfo, isLoggedIn, role, storeId, storeName,
-    wxLogin, bindEmployee, fetchProfile, logout, hasRole,
+    wxLogin, devLogin, bindEmployee, fetchProfile, logout, hasRole,
   }
 })

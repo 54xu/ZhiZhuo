@@ -5,6 +5,9 @@
 # ---- Stage 1: Builder ----
 FROM node:18-alpine AS builder
 
+# Install OpenSSL for Prisma engine compatibility
+RUN apk add --no-cache openssl openssl-dev
+
 WORKDIR /app
 
 # Install dependencies first (layer caching)
@@ -16,17 +19,20 @@ COPY src/ ./src/
 COPY tsconfig.json ./
 COPY prisma/ ./prisma/
 
-# Generate Prisma client
+# Generate Prisma client (with correct binary target for Alpine/musl)
 RUN npx prisma generate
 
 # Build TypeScript
 RUN npm run build
 
+# Compile seed.ts separately (for production seeding)
+RUN npx tsc prisma/seed.ts --outDir dist/ --esModuleInterop --module commonjs --target ES2020 --skipLibCheck
+
 # ---- Stage 2: Runner ----
 FROM node:18-alpine AS runner
 
-# Install curl for health check
-RUN apk add --no-cache curl
+# Install curl for health check + OpenSSL for Prisma engine
+RUN apk add --no-cache curl openssl
 
 WORKDIR /app
 

@@ -6,6 +6,20 @@
 import { PrismaClient } from '@prisma/client';
 import { eventBus, Events } from '../../core/event-bus';
 
+/** 将日期字符串或"今天"转为 UTC 午夜 Date，匹配 Prisma 读取 MySQL DATE 字段的格式 */
+function toDateOnly(dateStr?: string): Date {
+  if (dateStr) {
+    // 带 Z 后缀 → UTC 午夜，与 Prisma 读取 DATE 字段返回的格式一致
+    return new Date(dateStr + 'T00:00:00Z');
+  }
+  // "今天"：取本地日期部分，构造 UTC 午夜
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  return new Date(`${yyyy}-${mm}-${dd}T00:00:00Z`);
+}
+
 export class ScheduleService {
   constructor(private prisma: PrismaClient) {}
 
@@ -13,8 +27,7 @@ export class ScheduleService {
    * 获取某日排班列表
    */
   async getDaySchedule(storeId: number, date: string) {
-    const scheduleDate = new Date(date);
-    scheduleDate.setHours(0, 0, 0, 0);
+    const scheduleDate = toDateOnly(date);
 
     const schedules = await this.prisma.schedule.findMany({
       where: { storeId, scheduleDate },
@@ -44,8 +57,7 @@ export class ScheduleService {
     shiftEnd: string;
     rotationOrder: number;
   }>) {
-    const scheduleDate = new Date(date);
-    scheduleDate.setHours(0, 0, 0, 0);
+    const scheduleDate = toDateOnly(date);
 
     // 验证技师都属于该门店
     const techIds = items.map((i) => i.technicianId);
@@ -100,16 +112,9 @@ export class ScheduleService {
 
   /**
    * 轮牌算法 - 获取推荐技师列表
-   *
-   * 规则：
-   * 1. 只返回当日在班且状态非 leave 的技师
-   * 2. 按 rotationOrder 升序（数字越小越优先）
-   * 3. 正在服务中的技师排到最后（但仍展示）
-   * 4. 可选：按技能筛选（匹配指定服务项目）
    */
   async getRotationList(storeId: number, serviceId?: number) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = toDateOnly();
 
     const schedules = await this.prisma.schedule.findMany({
       where: {
@@ -169,8 +174,7 @@ export class ScheduleService {
    * 轮牌推进 - 技师完成服务后排到队尾
    */
   async advanceRotation(storeId: number, technicianId: number) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = toDateOnly();
 
     const schedules = await this.prisma.schedule.findMany({
       where: { storeId, scheduleDate: today, status: { not: 'leave' } },
