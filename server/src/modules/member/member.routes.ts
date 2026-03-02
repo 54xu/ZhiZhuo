@@ -31,9 +31,9 @@ router.get('/', requireAuth, async (req: Request, res: Response) => {
     const pageSize = Number(req.query.pageSize) || 20;
 
     if (!keyword) {
-      // 无关键词时返回最近会员
-      const recent = await getService().getRecentMembers(req.user!.storeId, pageSize);
-      res.json({ code: 0, data: { list: recent, total: recent.length, page: 1, pageSize } });
+      // 无关键词时返回全部会员（按最近到访排序，未到访的排后面）
+      const result = await getService().listAll(req.user!.storeId, page, pageSize);
+      res.json({ code: 0, data: result });
       return;
     }
 

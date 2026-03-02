@@ -337,6 +337,26 @@ export class MemberService {
     return { list, total, page, pageSize };
   }
 
+  /** 全部会员列表（分页，按最近到访排序，未到访的排后面） */
+  async listAll(storeId: number, page = 1, pageSize = 20) {
+    const where: Prisma.MemberWhereInput = { storeId, status: 'active' };
+    const [list, total] = await Promise.all([
+      this.prisma.member.findMany({
+        where,
+        orderBy: { lastVisitAt: { sort: 'desc', nulls: 'last' } },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        select: {
+          id: true, cardNo: true, phone: true, name: true, gender: true,
+          balance: true, realBalance: true, giftBalance: true,
+          status: true, lastVisitAt: true, remark: true,
+        },
+      }),
+      this.prisma.member.count({ where }),
+    ]);
+    return { list, total, page, pageSize };
+  }
+
   /** 最近到访会员列表（首页使用） */
   async getRecentMembers(storeId: number, limit = 10) {
     return this.prisma.member.findMany({
