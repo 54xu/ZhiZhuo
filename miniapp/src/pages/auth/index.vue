@@ -84,9 +84,9 @@ async function handleBind() {
   <view class="auth-page">
     <view class="auth-card">
       <view class="logo-section">
-        <image class="logo" src="/static/logo.png" mode="aspectFit" />
-        <text class="app-name">致卓收银</text>
-        <text class="app-desc">足浴 / SPA 门店收银管理系统</text>
+        <image class="logo" src="/static/zz-operations-trademark.jpg" mode="widthFix" />
+        <text class="app-name">致卓网络</text>
+        <text class="app-desc">企业登录入口</text>
       </view>
 
       <view v-if="showBind" class="bind-form">
@@ -154,9 +154,8 @@ async function handleBind() {
 }
 
 .logo {
-  width: 160rpx;
-  height: 160rpx;
-  margin-bottom: 24rpx;
+  width: 320rpx;
+  margin-bottom: 28rpx;
 }
 
 .app-name {

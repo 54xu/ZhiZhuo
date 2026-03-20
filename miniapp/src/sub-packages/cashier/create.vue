@@ -8,6 +8,7 @@ import { ref } from 'vue'
 import { useOrderStore } from '@/store/modules/order'
 import { serviceApi } from '@/api/service'
 import { scheduleApi } from '@/api/schedule'
+import { employeeApi } from '@/api/employee'
 import { memberApi } from '@/api/member'
 
 const orderStore = useOrderStore()
@@ -21,6 +22,7 @@ const selectedItems = ref<Array<{ serviceId: number; serviceName: string; techni
 const technicians = ref<any[]>([])
 const showTechPicker = ref(false)
 const pendingServiceIdx = ref(-1)
+const loadingTechs = ref(false)
 const submitting = ref(false)
 
 onLoad((options: any) => {
@@ -33,8 +35,48 @@ onLoad((options: any) => {
 async function loadServices() {
   try { const { data } = await serviceApi.list(); services.value = data } catch { uni.showToast({ title: '加载失败', icon: 'none' }) }
 }
-async function loadTechnicians() {
-  try { const { data } = await scheduleApi.getRotation(); technicians.value = data } catch { uni.showToast({ title: '加载失败', icon: 'none' }) }
+
+function normalizeTechnicians(list: any[] = []) {
+  return list
+    .map((tech) => ({
+      technicianId: tech.technicianId || tech.id || 0,
+      name: tech.name || tech.technicianName || '',
+      skills: Array.isArray(tech.skills) ? tech.skills : [],
+      isBusy: !!tech.isBusy,
+      isOnDuty: tech.isOnDuty ?? true,
+      rotationOrder: typeof tech.rotationOrder === 'number' ? tech.rotationOrder : 999,
+      shiftTime: tech.shiftTime || null,
+    }))
+    .filter((tech) => tech.technicianId > 0)
+    .sort((a, b) => {
+      if (a.isBusy !== b.isBusy) return a.isBusy ? 1 : -1
+      return a.rotationOrder - b.rotationOrder
+    })
+}
+
+async function fetchTechnicians(serviceId?: number) {
+  const { data: rotation } = await scheduleApi.getRotation(serviceId)
+  const normalizedRotation = normalizeTechnicians(rotation || [])
+  if (normalizedRotation.length > 0) return normalizedRotation
+
+  const { data: employeeList } = await employeeApi.technicians()
+  let fallback = normalizeTechnicians(employeeList || [])
+  if (serviceId) {
+    fallback = fallback.filter((tech) => tech.skills.length === 0 || tech.skills.includes(serviceId))
+  }
+  return fallback
+}
+
+async function loadTechnicians(serviceId?: number) {
+  loadingTechs.value = true
+  try {
+    technicians.value = await fetchTechnicians(serviceId)
+  } catch {
+    technicians.value = []
+    uni.showToast({ title: '加载技师失败', icon: 'none' })
+  } finally {
+    loadingTechs.value = false
+  }
 }
 
 async function searchMember() {
@@ -46,20 +88,25 @@ async function searchMember() {
   } catch { uni.showToast({ title: '搜索失败', icon: 'none' }) }
 }
 
-function addService(svc: any) {
-  const recommended = technicians.value[0]
+async function addService(svc: any) {
+  const availableTechnicians = await fetchTechnicians(svc.id).catch(() => [])
+  if (availableTechnicians.length > 0) {
+    technicians.value = availableTechnicians
+  }
+  const recommended = availableTechnicians[0]
   selectedItems.value.push({
     serviceId: svc.id,
     serviceName: svc.name,
     technicianId: recommended?.technicianId || 0,
-    technicianName: recommended?.name || '未分配',
+    technicianName: recommended?.name || '待分配',
     price: currentMember.value && svc.memberPrice ? svc.memberPrice : svc.price,
   })
 }
 
-function pickTechnician(idx: number) {
+async function pickTechnician(idx: number) {
   pendingServiceIdx.value = idx
   showTechPicker.value = true
+  await loadTechnicians(selectedItems.value[idx]?.serviceId)
 }
 
 function confirmTechnician(tech: any) {
@@ -145,8 +192,17 @@ async function submitOrder() {
     <view v-if="showTechPicker" class="picker-mask" @tap="showTechPicker = false">
       <view class="picker-panel" @tap.stop>
         <text class="picker-title">选择技师</text>
-        <view v-for="tech in technicians" :key="tech.technicianId" class="tech-item" @tap="confirmTechnician(tech)">
-          <text class="tech-name">{{ tech.name }}</text>
+        <view v-if="loadingTechs" class="picker-empty">
+          <text class="picker-empty-text">加载中...</text>
+        </view>
+        <view v-else-if="technicians.length === 0" class="picker-empty">
+          <text class="picker-empty-text">暂无可选技师</text>
+        </view>
+        <view v-for="tech in technicians" v-else :key="tech.technicianId" class="tech-item" @tap="confirmTechnician(tech)">
+          <view class="tech-meta">
+            <text class="tech-name">{{ tech.name }}</text>
+            <text v-if="tech.shiftTime" class="tech-shift">{{ tech.shiftTime }}</text>
+          </view>
           <text class="tech-status" :style="{ color: tech.isBusy ? '#ff9500' : '#4cd964' }">
             {{ tech.isBusy ? '忙碌' : '空闲' }}
           </text>
@@ -182,7 +238,11 @@ async function submitOrder() {
 .picker-mask { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: flex-end; z-index: 100; }
 .picker-panel { width: 100%; max-height: 60vh; background: #fff; border-radius: 24rpx 24rpx 0 0; padding: 30rpx; overflow-y: auto; }
 .picker-title { font-size: 30rpx; font-weight: bold; color: #333; display: block; margin-bottom: 20rpx; text-align: center; }
+.picker-empty { padding: 40rpx 0; text-align: center; }
+.picker-empty-text { font-size: 26rpx; color: #999; }
 .tech-item { display: flex; justify-content: space-between; padding: 24rpx 0; border-bottom: 1rpx solid #f5f5f5; }
+.tech-meta { display: flex; flex-direction: column; gap: 6rpx; }
 .tech-name { font-size: 28rpx; color: #333; }
+.tech-shift { font-size: 22rpx; color: #999; }
 .tech-status { font-size: 26rpx; }
 </style>

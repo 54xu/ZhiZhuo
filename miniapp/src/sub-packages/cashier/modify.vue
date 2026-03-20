@@ -8,6 +8,7 @@ import { onLoad } from '@dcloudio/uni-app'
 import { useOrderStore } from '@/store/modules/order'
 import { serviceCategoryApi, serviceApi } from '@/api/service'
 import { scheduleApi } from '@/api/schedule'
+import { employeeApi } from '@/api/employee'
 
 const orderStore = useOrderStore()
 
@@ -46,6 +47,34 @@ const existingItems = computed(() => order.value?.items || [])
 const newTotalAmount = computed(() => {
   return newItems.value.reduce((sum, item) => sum + item.price, 0)
 })
+
+function normalizeTechnicians(list: any[] = []) {
+  return list
+    .map((tech) => ({
+      technicianId: tech.technicianId || tech.id || 0,
+      name: tech.name || tech.technicianName || '',
+      skills: Array.isArray(tech.skills) ? tech.skills : [],
+      isBusy: !!tech.isBusy,
+      rotationOrder: typeof tech.rotationOrder === 'number' ? tech.rotationOrder : 999,
+      shiftTime: tech.shiftTime || null,
+    }))
+    .filter((tech) => tech.technicianId > 0)
+    .sort((a, b) => {
+      if (a.isBusy !== b.isBusy) return a.isBusy ? 1 : -1
+      return a.rotationOrder - b.rotationOrder
+    })
+}
+
+async function loadTechniciansForService(serviceId: number) {
+  const { data: rotation } = await scheduleApi.getRotation(serviceId)
+  const normalizedRotation = normalizeTechnicians(rotation || [])
+  if (normalizedRotation.length > 0) return normalizedRotation
+
+  const { data: employeeList } = await employeeApi.technicians()
+  return normalizeTechnicians(employeeList || []).filter(
+    (tech) => tech.skills.length === 0 || tech.skills.includes(serviceId),
+  )
+}
 
 // --- Lifecycle ---
 onLoad((options: any) => {
@@ -103,8 +132,7 @@ async function onSelectService(service: any) {
   showTechPopup.value = true
   loadingTechs.value = true
   try {
-    const { data } = await scheduleApi.getRotation(service.id)
-    technicianList.value = data || []
+    technicianList.value = await loadTechniciansForService(service.id)
   } catch {
     technicianList.value = []
     uni.showToast({ title: '加载技师列表失败', icon: 'none' })
