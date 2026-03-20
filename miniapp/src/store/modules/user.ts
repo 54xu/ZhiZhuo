@@ -17,9 +17,7 @@ export const useUserStore = defineStore('user', () => {
 
     const { data } = await authApi.wxLogin(res.code)
     if (data.needBind) {
-      // 未绑定，跳转绑定页面，传 openid
-      uni.navigateTo({ url: `/pages/index/index?openid=${data.openid}` })
-      return { needBind: true }
+      return { needBind: true, openid: data.openid }
     }
 
     // 已绑定，保存 token
@@ -78,7 +76,7 @@ export const useUserStore = defineStore('user', () => {
     token.value = ''
     userInfo.value = null
     uni.removeStorageSync('access_token')
-    uni.reLaunch({ url: '/pages/index/index' })
+    uni.reLaunch({ url: '/pages/auth/index' })
   }
 
   /** 权限检查 */

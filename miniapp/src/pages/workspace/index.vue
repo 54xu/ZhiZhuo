@@ -31,7 +31,7 @@ const statusText: Record<string, string> = {
 
 onShow(async () => {
   if (!userStore.isLoggedIn) {
-    uni.reLaunch({ url: '/pages/index/index' })
+    uni.reLaunch({ url: '/pages/auth/index' })
     return
   }
   await Promise.all([roomStore.loadOverview(), loadDashboard()])

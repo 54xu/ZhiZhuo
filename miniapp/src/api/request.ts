@@ -80,7 +80,7 @@ export function request<T = any>(options: RequestOptions): Promise<ApiResponse<T
         // Token 过期
         if (statusCode === 401) {
           clearToken()
-          uni.reLaunch({ url: '/pages/index/index' })
+          uni.reLaunch({ url: '/pages/auth/index' })
           reject(new Error('登录已过期，请重新登录'))
           return
         }

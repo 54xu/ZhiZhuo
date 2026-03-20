@@ -31,7 +31,7 @@ const visibleMenus = ref<any[]>([])
 
 onShow(() => {
   if (!userStore.isLoggedIn) {
-    uni.reLaunch({ url: '/pages/index/index' })
+    uni.reLaunch({ url: '/pages/auth/index' })
     return
   }
   visibleMenus.value = menuItems.value.filter(item => item.roles.includes(userStore.role))
