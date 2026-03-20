@@ -8,7 +8,16 @@
  * - 请求/响应拦截
  */
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1'
+const DEFAULT_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1'
+
+const BASE_URL = (() => {
+  // H5 uses the current site origin so HTTPS pages don't hit blocked HTTP APIs.
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return `${window.location.origin}/api/v1`
+  }
+
+  return DEFAULT_BASE_URL
+})()
 
 interface RequestOptions {
   url: string
